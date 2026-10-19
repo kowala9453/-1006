@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="互動式溫室白漆節能數據分析工具，可比較每分地耗電量、估算差異並產生分析摘要。" />
+  <title>溫室白漆節能分析器</title>
+  <style>
+    :root {
+      --bg: #f4f6f1;
+      --surface: #ffffff;
+      --surface-soft: #f8faf6;
+      --ink: #203129;
+      --muted: #6b7970;
+      --line: #e1e8df;
+      --green: #31765a;
+      --green-dark: #225640;
+      --green-light: #e8f3eb;
+      --orange: #d88a48;
+      --orange-light: #fff0df;
+      --shadow: 0 12px 32px rgba(31, 56, 42, .07);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 90% 0%, rgba(205, 225, 203, .45), transparent 27rem),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.55;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .container { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 32px 0 20px; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 28px; }
+    .brand { display:flex; align-items:center; gap:10px; color:var(--green-dark); font-weight:800; letter-spacing:.02em; }
+    .brand-mark { display:grid; place-items:center; width:40px; height:40px; border-radius:13px; background:var(--green); color:white; font-size:21px; box-shadow:0 7px 15px #31765a2c; }
+    .tag { color:var(--green-dark); background:var(--green-light); border:1px solid #d5e9da; padding:7px 12px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap; }
+    .hero { display:grid; grid-template-columns: 1.4fr .8fr; gap:24px; align-items:stretch; }
+    .hero-copy { padding: 8px 0 18px; }
+    .eyebrow { color:var(--green); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { margin:9px 0 12px; font-size:clamp(32px, 4vw, 48px); letter-spacing:-.045em; line-height:1.13; }
+    .hero p { max-width:680px; margin:0; color:var(--muted); font-size:16px; }
+    .hero-visual { min-height:180px; padding:22px; border-radius:var(--radius); color:white; background:linear-gradient(135deg, #245940, #6a9a6b); position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:var(--shadow); }
+    .hero-visual:before { content:""; width:210px; height:210px; border:1px solid #ffffff28; border-radius:50%; position:absolute; right:-40px; top:-73px; box-shadow:0 0 0 24px #ffffff0d, 0 0 0 48px #ffffff09; }
+    .sun { position:absolute; right:34px; top:29px; width:42px; height:42px; border-radius:50%; background:#f5d88b; box-shadow:0 0 0 11px #f5d88b28; }
+    .house { position:absolute; right:42px; bottom:28px; width:150px; height:75px; border:3px solid #eaf2e4; border-top:0; transform:skewY(-7deg); opacity:.95; }
+    .house:before { content:""; position:absolute; width:150px; height:58px; left:-3px; top:-38px; border-left:3px solid #eaf2e4; border-top:3px solid #eaf2e4; transform:skewY(25deg) rotate(20deg); }
+    .hero-visual strong { position:relative; z-index:1; max-width:210px; font-size:22px; line-height:1.35; }
+    .hero-visual small { position:relative; z-index:1; color:#e3eee3; font-size:12px; }
+    main { padding: 8px 0 54px; }
+    .section-head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin:22px 0 14px; }
+    h2 { margin:0; font-size:21px; letter-spacing:-.025em; }
+    .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .stat { padding:20px; min-height:138px; }
+    .stat-label { color:var(--muted); font-size:13px; font-weight:650; }
+    .stat-number { font-size:clamp(24px,2.8vw,34px); font-weight:850; letter-spacing:-.04em; line-height:1.3; margin:10px 0 3px; font-variant-numeric:tabular-nums; }
+    .stat-note { font-size:12px; color:var(--muted); }
+    .stat.highlight { background:var(--green-dark); color:white; border-color:var(--green-dark); }
+    .stat.highlight .stat-label, .stat.highlight .stat-note { color:#d1e7d7; }
+    .two-col { display:grid; grid-template-columns:1.15fr .85fr; gap:16px; align-items:start; }
+    .panel { padding:22px; }
+    .panel-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+    .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--muted); }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .dot { width:9px; height:9px; border-radius:3px; display:inline-block; }
+    .dot.paint { background:var(--green); } .dot.control { background:var(--orange); }
+    .chart-area { display:flex; flex-direction:column; gap:20px; padding-top:4px; }
+    .chart-row { display:grid; grid-template-columns:106px 1fr; gap:12px; align-items:center; }
+    .chart-label { font-size:13px; color:var(--muted); font-weight:700; }
+    .bars { display:flex; flex-direction:column; gap:7px; }
+    .bar-line { display:grid; grid-template-columns:minmax(0,1fr) 75px; align-items:center; gap:9px; }
+    .bar-track { height:14px; width:100%; background:#edf1eb; border-radius:999px; overflow:hidden; }
+    .bar { height:100%; width:0; border-radius:999px; transition:width .35s ease; }
+    .bar.paint { background:var(--green); } .bar.control { background:var(--orange); }
+    .bar-value { text-align:right; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
+    .chart-foot { border-top:1px solid var(--line); padding-top:12px; color:var(--muted); font-size:12px; margin-top:18px; }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; width:100%; min-width:480px; }
+    th, td { text-align:left; padding:12px 10px; border-bottom:1px solid var(--line); font-size:13px; }
+    th { color:var(--muted); font-size:12px; font-weight:750; background:var(--surface-soft); }
+    td:first-child { font-weight:700; }
+    tr:last-child td { border-bottom:0; }
+    .data-input { width:108px; max-width:100%; border:1px solid #d8e2d8; border-radius:9px; padding:8px 9px; background:#fcfdfb; color:var(--ink); font-variant-numeric:tabular-nums; }
+    .data-input:focus, .factor-input:focus { outline:3px solid #b9dcc3; border-color:var(--green); }
+    .table-actions { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-top:16px; }
+    .hint { font-size:12px; color:var(--muted); }
+    .btn { border:1px solid transparent; border-radius:11px; padding:10px 15px; font-weight:750; font-size:13px; transition:transform .15s ease, background .15s ease; }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-primary { color:white; background:var(--green); }
+    .btn-primary:hover { background:var(--green-dark); }
+    .btn-secondary { color:var(--green-dark); background:#fff; border-color:#d8e2d8; }
+    .btn-secondary:hover { background:var(--green-light); }
+    .factor-panel { display:grid; grid-template-columns:1fr; gap:16px; }
+    .factor-box { background:var(--surface-soft); border:1px solid var(--line); padding:16px; border-radius:15px; }
+    .factor-label { font-size:13px; font-weight:800; margin-bottom:8px; display:block; }
+    .factor-input { width:100%; border:1px solid #d8e2d8; padding:11px 12px; border-radius:10px; background:white; color:var(--ink); }
+    .factor-result { display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:12px; }
+    .factor-result strong { font-size:22px; color:var(--green-dark); font-variant-numeric:tabular-nums; }
+    .notice { border-left:3px solid var(--orange); background:#fff8f0; color:#785734; padding:12px 13px; font-size:12px; border-radius:0 10px 10px 0; }
+    .summary-box { padding:22px; }
+    .summary-text { color:#425348; background:var(--surface-soft); border:1px solid var(--line); border-radius:13px; padding:17px; min-height:104px; font-size:14px; }
+    .summary-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:13px; align-items:center; }
+    .status { color:var(--green-dark); font-size:12px; min-height:18px; }
+    .method-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .method { padding:18px; }
+    .method-num { width:30px; height:30px; display:grid; place-items:center; border-radius:10px; color:var(--green-dark); background:var(--green-light); font-weight:850; margin-bottom:10px; }
+    .method h3 { margin:0 0 6px; font-size:15px; }
+    .method p { margin:0; font-size:12px; color:var(--muted); }
+    footer { padding:20px 0 32px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }
+    footer .container { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    @media (max-width:900px) { .hero { grid-template-columns:1fr; } .hero-visual { min-height:150px; } .stats { grid-template-columns:repeat(2,1fr); } .two-col { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .container { width:min(100% - 22px,1180px); } header { padding-top:19px; } .topline { align-items:flex-start; } .tag { white-space:normal; text-align:center; } .stats { gap:9px; } .stat { min-height:120px; padding:14px; } .stat-number { font-size:25px; } .panel, .summary-box { padding:15px; } .chart-row { grid-template-columns:82px 1fr; gap:8px; } .bar-line { grid-template-columns:minmax(0,1fr) 66px; } .method-grid { grid-template-columns:1fr; } h2 { font-size:19px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="topline">
+        <div class="brand"><span class="brand-mark">↗</span><span>FIELD NOTES <span style="font-weight:500;color:var(--muted)">／實驗數據工具</span></span></div>
+        <div class="tag">Vibe Coding · 單頁互動 Web App</div>
+      </div>
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">GREENHOUSE ENERGY LAB</div>
+          <h1>溫室白漆<br>節能分析器</h1>
+          <p>把實驗記錄變成看得懂的數據。比較塗白漆組與對照組的每分地耗電量，修改數值即可重新計算差異，並產生可複製的分析摘要。</p>
+        </div>
+        <div class="hero-visual" aria-label="溫室示意裝飾">
+          <div class="sun"></div><div class="house"></div>
+          <strong>從電表讀數<br>看見節能線索</strong>
+          <small>觀測期間｜6 月 18 日 — 9 月 16 日</small>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="section-head">
+      <div><h2>實驗數據總覽</h2><div class="sub">使用每分地耗電量比較，避免直接比較不同面積的總用電量。</div></div>
+    </div>
+    <section class="stats" aria-label="計算結果總覽">
+      <article class="card stat"><div class="stat-label">塗白漆組累計耗電</div><div class="stat-number" id="paintTotal">403.30</div><div class="stat-note">kWh／分地</div></article>
+      <article class="card stat"><div class="stat-label">對照組累計耗電</div><div class="stat-number" id="controlTotal">761.30</div><div class="stat-note">kWh／分地</div></article>
+      <article class="card stat"><div class="stat-label">每分地耗電差</div><div class="stat-number" id="diffTotal">358.00</div><div class="stat-note">kWh／分地（對照組 − 塗白漆組）</div></article>
+      <article class="card stat highlight"><div class="stat-label">估算耗電差異率</div><div class="stat-number" id="savingRate">47.0%</div><div class="stat-note">以對照組為比較基準，非因果證明</div></article>
+    </section>
+
+    <div class="section-head"><div><h2>耗電量比較</h2><div class="sub">下方圖表會依照你輸入的資料即時更新。</div></div><div class="legend"><span><i class="dot paint"></i>塗白漆組</span><span><i class="dot control"></i>對照組</span></div></div>
+    <section class="two-col">
+      <article class="card panel">
+        <div class="panel-title"><div><h2 style="font-size:17px">各時段每分地耗電量</h2><div class="sub">單位：kWh／分地</div></div></div>
+        <div class="chart-area" id="chartArea" aria-live="polite"></div>
+        <div class="chart-foot">圖表為相對長度比較；數值標籤顯示實際耗電量。此圖不代表白漆必然是差異的唯一原因。</div>
+      </article>
+      <article class="card panel">
+        <div class="panel-title"><div><h2 style="font-size:17px">如何解讀結果？</h2><div class="sub">把數據和推論分開看。</div></div></div>
+        <div class="factor-panel">
+          <div class="factor-box">
+            <span class="factor-label">目前資料支持的觀察</span>
+            <div id="observationText" style="font-size:14px;color:#425348">三個觀測時段中，塗白漆組每分地耗電量均低於對照組。</div>
+          </div>
+          <div class="factor-box">
+            <span class="factor-label">碳排差異估算（選填）</span>
+            <label for="factorInput" class="sub" style="display:block;margin:0 0 8px">輸入適用的電力排碳係數（kg CO₂e／kWh）</label>
+            <input id="factorInput" class="factor-input" type="number" min="0" step="0.001" placeholder="例如：0.XXX，不確定可留白" />
+            <div class="factor-result"><span class="sub">依每分地耗電差估算</span><strong id="carbonResult">—</strong></div>
+            <div class="sub" id="carbonUnit">請輸入係數後計算；結果不是直接量測值。</div>
+          </div>
+          <div class="notice">注意：耗電差異可能同時受到日照、天氣、設備配置及操作方式影響。若沒有對照這些因素，不能將差異全部歸因於白漆。</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-head"><div><h2>編輯實驗數據</h2><div class="sub">下列數值來自原始實驗記錄中的每分地耗電量；可修改後按「更新分析」。</div></div></div>
+    <section class="card panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>用電期間</th><th>塗白漆組<br>(kWh／分地)</th><th>對照組<br>(kWh／分地)</th><th>耗電差<br>(kWh／分地)</th><th>差異率</th></tr></thead>
+          <tbody id="dataRows"></tbody>
+          <tfoot><tr style="background:var(--surface-soft)"><td><strong>累計</strong></td><td id="sumPaint">403.30</td><td id="sumControl">761.30</td><td id="sumDiff">358.00</td><td id="sumRate">47.0%</td></tr></tfoot>
+        </table>
+      </div>
+      <div class="table-actions"><div class="hint">只接受 0 或正數。更改資料後請更新分析；恢復預設可回到原始數值。</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary" id="resetBtn" type="button">恢復原始數據</button><button class="btn btn-primary" id="calculateBtn" type="button">更新分析</button></div></div>
+      <div class="status" id="inputStatus" role="status" aria-live="polite"></div>
+    </section>
+
+    <div class="section-head"><div><h2>產生分析摘要</h2><div class="sub">根據目前數據自動整理一段可貼進實驗報告的初步分析。</div></div></div>
+    <section class="card summary-box">
+      <div id="summaryText" class="summary-text" aria-live="polite"></div>
+      <div class="summary-actions"><button class="btn btn-primary" id="copyBtn" type="button">複製摘要文字</button><button class="btn btn-secondary" id="downloadBtn" type="button">下載分析摘要 .txt</button><span class="status" id="copyStatus" role="status" aria-live="polite"></span></div>
+    </section>
+
+    <div class="section-head"><div><h2>分析流程</h2><div class="sub">這個工具目前能做什麼，以及還不能證明什麼。</div></div></div>
+    <section class="method-grid">
+      <article class="card method"><div class="method-num">01</div><h3>輸入與整理</h3><p>依照觀測時段輸入兩組每分地耗電量，維持單位一致。</p></article>
+      <article class="card method"><div class="method-num">02</div><h3>即時計算</h3><p>自動加總耗電量、計算差值及以對照組為基準的差異率。</p></article>
+      <article class="card method"><div class="method-num">03</div><h3>審慎解讀</h3><p>摘要提醒可能的干擾因素；碳排估算需自行提供合適係數。</p></article>
+    </section>
+  </main>
+
+  <footer><div class="container"><span>溫室白漆節能分析器｜課程練習作品</span><span>單一 HTML · CSS / JavaScript 內嵌 · 不需外部套件</span></div></footer>
+
+  <script>
+    (() => {
+      'use strict';
+      const defaults = [
+        { period: '6/18–7/18', paint: 130.65, control: 219.60 },
+        { period: '7/18–8/18', paint: 77.10, control: 143.80 },
+        { period: '8/18–9/16', paint: 195.55, control: 397.90 }
+      ];
+      let rows = defaults.map(item => ({ ...item }));
+      const $ = id => document.getElementById(id);
+      const fmt = (n, digits = 2) => Number(n).toLocaleString('zh-TW', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      const pct = n => `${fmt(n, 1)}%`;
+      const sum = (key) => rows.reduce((total, row) => total + row[key], 0);
+      const rowDiff = row => row.control - row.paint;
+      const rowRate = row => row.control > 0 ? rowDiff(row) / row.control * 100 : 0;
+      const totals = () => ({ paint: sum('paint'), control: sum('control') });
+
+      function renderInputs() {
+        $('dataRows').innerHTML = rows.map((row, i) => `
+          <tr>
+            <td>${row.period}</td>
+            <td><input class="data-input" aria-label="${row.period} 塗白漆組每分地耗電量" type="number" min="0" step="0.01" data-index="${i}" data-key="paint" value="${row.paint.toFixed(2)}"></td>
+            <td><input class="data-input" aria-label="${row.period} 對照組每分地耗電量" type="number" min="0" step="0.01" data-index="${i}" data-key="control" value="${row.control.toFixed(2)}"></td>
+            <td>${fmt(rowDiff(row))}</td><td>${pct(rowRate(row))}</td>
+          </tr>`).join('');
+      }
+
+      function readInputs() {
+        const inputs = [...document.querySelectorAll('.data-input')];
+        const next = rows.map(row => ({ ...row }));
+        for (const input of inputs) {
+          const value = Number(input.value);
+          if (input.value.trim() === '' || !Number.isFinite(value) || value < 0) {
+            input.setAttribute('aria-invalid', 'true');
+            $('inputStatus').textContent = '請確認所有數值皆為 0 或正數，且沒有空白欄位。';
+            input.focus();
+            return null;
+          }
+          input.removeAttribute('aria-invalid');
+          next[Number(input.dataset.index)][input.dataset.key] = value;
+        }
+        $('inputStatus').textContent = '';
+        return next;
+      }
+
+      function renderChart() {
+        const all = rows.flatMap(r => [r.paint, r.control]);
+        const max = Math.max(...all, 1);
+        $('chartArea').innerHTML = rows.map(row => `
+          <div class="chart-row">
+            <div class="chart-label">${row.period}</div>
+            <div class="bars">
+              <div class="bar-line"><div class="bar-track"><div class="bar paint" style="width:${row.paint / max * 100}%"></div></div><div class="bar-value">${fmt(row.paint)}</div></div>
+              <div class="bar-line"><div class="bar-track"><div class="bar control" style="width:${row.control / max * 100}%"></div></div><div class="bar-value">${fmt(row.control)}</div></div>
+            </div>
+          </div>`).join('');
+      }
+
+      function buildSummary(t, diff, rate) {
+        const comparisons = rows.map(row => `${row.period} 塗白漆組為 ${fmt(row.paint)} kWh／分地，對照組為 ${fmt(row.control)} kWh／分地，差值 ${fmt(rowDiff(row))} kWh／分地（以對照組為基準約 ${pct(rowRate(row))}）`).join('；');
+        return `根據目前輸入的數據，塗白漆組累計每分地耗電量為 ${fmt(t.paint)} kWh，對照組為 ${fmt(t.control)} kWh，相差 ${fmt(diff)} kWh／分地。以對照組為基準，估算耗電差異率約為 ${pct(rate)}。各時段比較如下：${comparisons}。這些數據顯示觀測期間兩組具有耗電量差異，但不能單獨證明差異由白漆造成。天氣、日照、溫室結構、設備配置與操作時間都可能影響用電；後續應結合溫度、濕度、日照及設備運轉紀錄，才能進一步評估白漆的節能效益。`;
+      }
+
+      function render() {
+        const t = totals();
+        const diff = t.control - t.paint;
+        const rate = t.control > 0 ? diff / t.control * 100 : 0;
+        $('paintTotal').textContent = fmt(t.paint);
+        $('controlTotal').textContent = fmt(t.control);
+        $('diffTotal').textContent = fmt(diff);
+        $('savingRate').textContent = pct(rate);
+        $('sumPaint').textContent = fmt(t.paint);
+        $('sumControl').textContent = fmt(t.control);
+        $('sumDiff').textContent = fmt(diff);
+        $('sumRate').textContent = pct(rate);
+        const lowerCount = rows.filter(row => row.paint < row.control).length;
+        $('observationText').textContent = lowerCount === rows.length
+          ? `目前 ${rows.length} 個觀測時段中，塗白漆組每分地耗電量都低於對照組。這是數據觀察，不代表已確認因果關係。`
+          : `目前 ${lowerCount} 個觀測時段中，塗白漆組每分地耗電量低於對照組；請留意其他時段的差異並檢查資料。`;
+        $('summaryText').textContent = buildSummary(t, diff, rate);
+        const factorString = $('factorInput').value.trim();
+        if (factorString !== '' && Number.isFinite(Number(factorString)) && Number(factorString) >= 0) {
+          $('carbonResult').textContent = `${fmt(diff * Number(factorString))} kg`; 
+          $('carbonUnit').textContent = diff >= 0 ? '每分地推估碳排差異（對照組減塗白漆組）；為依係數換算的估算值。' : '目前塗白漆組耗電較高，結果顯示相對碳排差異方向不同。';
+        } else {
+          $('carbonResult').textContent = '—';
+          $('carbonUnit').textContent = '請輸入係數後計算；結果不是直接量測值。';
+        }
+        renderChart();
+      }
+
+      $('calculateBtn').addEventListener('click', () => {
+        const next = readInputs();
+        if (!next) return;
+        rows = next;
+        renderInputs();
+        render();
+        $('inputStatus').textContent = '分析已更新。';
+      });
+      $('resetBtn').addEventListener('click', () => {
+        rows = defaults.map(item => ({ ...item }));
+        renderInputs(); render();
+        $('inputStatus').textContent = '已恢復原始實驗數據。';
+      });
+      $('factorInput').addEventListener('input', render);
+      $('copyBtn').addEventListener('click', async () => {
+        const text = $('summaryText').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          $('copyStatus').textContent = '已複製摘要。';
+        } catch (error) {
+          const area = document.createElement('textarea');
+          area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+          document.body.appendChild(area); area.select();
+          const success = document.execCommand('copy'); area.remove();
+          $('copyStatus').textContent = success ? '已複製摘要。' : '複製功能受瀏覽器限制，請手動選取摘要文字。';
+        }
+      });
+      $('downloadBtn').addEventListener('click', () => {
+        const blob = new Blob([$('summaryText').textContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = '溫室白漆節能分析摘要.txt';
+        document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+        $('copyStatus').textContent = '已準備下載摘要文字檔。';
+      });
+      renderInputs(); render();
+    })();
+  </script>
+</body>
+</html>
